@@ -14,20 +14,20 @@ if (fs.existsSync(DATA_FILE)) {
 }
 
 io.on('connection', (socket) => {
-    const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
+    const ip = socket.handshake.headers['x-forwarded-for'] || socket.request.connection.remoteAddress;
     socket.emit('loadCanvas', pixelData);
 
     socket.on('setPixel', (data) => {
         const now = Date.now();
-        if (lastMove[clientIp] && now - lastMove[clientIp] < 5000) { // 5 секунд кд
-            socket.emit('error_cooldown', Math.ceil((5000 - (now - lastMove[clientIp])) / 1000));
+        if (lastMove[ip] && now - lastMove[ip] < 5000) {
+            socket.emit('error_cooldown', Math.ceil((5000 - (now - lastMove[ip])) / 1000));
             return;
         }
-        lastMove[clientIp] = now;
-        pixelData[`${data.x}-${data.y}`] = data.color;
+        lastMove[ip] = now;
+        pixelData[`${data.x}-${data.y}`] = { color: data.color, user: data.user };
         io.emit('updatePixel', data);
         fs.writeFile(DATA_FILE, JSON.stringify(pixelData), () => {});
     });
 });
 
-http.listen(process.env.PORT || 3000, () => console.log('Ready!'));
+http.listen(process.env.PORT || 3000, () => console.log('Server is Live!'));
