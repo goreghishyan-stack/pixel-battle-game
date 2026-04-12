@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Tactical Map</title>
+    <title>Pixel Battle</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; overflow: hidden; }
-        #controls { padding: 15px; background: #333; width: 100%; text-align: center; border-bottom: 2px solid #444; }
-        canvas { background-color: #222; cursor: crosshair; box-shadow: 0 0 20px black; }
-        input { cursor: pointer; }
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; font-family: sans-serif; }
+        #controls { padding: 10px; background: #fff; width: 100%; display: flex; justify-content: center; gap: 10px; border-bottom: 1px solid #ccc; }
+        canvas { background: white; border: 1px solid #000; margin-top: 20px; cursor: crosshair; }
+        #timer { font-weight: bold; color: red; }
     </style>
 </head>
 <body>
     <div id="controls">
-        Цвет: <input type="color" id="colorPicker" value="#00ff00">
-        <span style="margin-left:20px;">Зажми мышку и рисуй! (Линии исчезнут через 5 сек)</span>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <div id="timer">ГОТОВ</div>
     </div>
     <canvas id="pixelCanvas"></canvas>
     <script src="game.js"></script>
