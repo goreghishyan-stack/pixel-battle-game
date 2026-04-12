@@ -10,7 +10,7 @@ let pixelData = {};
 let lastMove = {};
 
 if (fs.existsSync(DATA_FILE)) {
-    pixelData = JSON.parse(fs.readFileSync(DATA_FILE));
+    try { pixelData = JSON.parse(fs.readFileSync(DATA_FILE)); } catch(e){}
 }
 
 io.on('connection', (socket) => {
@@ -24,10 +24,10 @@ io.on('connection', (socket) => {
             return;
         }
         lastMove[ip] = now;
-        pixelData[`${data.x}-${data.y}`] = { color: data.color, user: data.user };
-        io.emit('updatePixel', data);
+        pixelData[`${data.x}-${data.y}`] = { color: data.color, user: data.user || "Аноним" };
+        io.emit('updatePixel', { x: data.x, y: data.y, color: data.color, user: data.user });
         fs.writeFile(DATA_FILE, JSON.stringify(pixelData), () => {});
     });
 });
 
-http.listen(process.env.PORT || 3000, () => console.log('Server is Live!'));
+http.listen(process.env.PORT || 3000, () => console.log('Server Online'));
