@@ -1,40 +1,22 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Pixel Strategy Online</title>
+    <title>Tactical Map</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { margin: 0; background: #222; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-        #controls { background: #333; padding: 15px; width: 100%; display: flex; justify-content: center; gap: 15px; border-bottom: 2px solid #444; }
-        canvas { background: white; cursor: crosshair; box-shadow: 0 0 20px rgba(0,0,0,0.5); margin-top: 20px; }
-        button { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; background: #555; color: white; font-weight: bold; }
-        button:hover { background: #777; }
-        button.active { background: #27ae60; }
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        input { padding: 10px; font-size: 16px; border-radius: 5px; border: none; margin-bottom: 10px; }
-        #timer-display { font-family: monospace; font-size: 18px; color: #f1c40f; align-self: center; }
+        body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; overflow: hidden; }
+        #controls { padding: 15px; background: #333; width: 100%; text-align: center; border-bottom: 2px solid #444; }
+        canvas { background-color: #222; cursor: crosshair; box-shadow: 0 0 20px black; }
+        input { cursor: pointer; }
     </style>
 </head>
 <body>
-
-<div id="login-screen">
-    <h1>PIXEL STRATEGY</h1>
-    <input type="text" id="nickname" placeholder="Твой ник для стратегии...">
-    <button onclick="startGame()">ВОЙТИ В ИГРУ</button>
-</div>
-
-<div id="controls">
-    <input type="color" id="colorPicker" value="#ff0000">
-    <button id="btn-brush" class="active" onclick="setTool('brush')">КИСТЬ 🖌️</button>
-    <button id="btn-eraser" onclick="setTool('eraser')">ЛАСТИК 🧹</button>
-    <button onclick="toggleGrid()">СЕТКА (ON/OFF) 🏁</button>
-    <div id="timer-display">ГОТОВ К БОЮ</div>
-    <div id="nickname-display" style="margin-left:20px; color:#aaa"></div>
-</div>
-
-<canvas id="pixelCanvas"></canvas>
-
-<script src="game.js"></script>
+    <div id="controls">
+        Цвет: <input type="color" id="colorPicker" value="#00ff00">
+        <span style="margin-left:20px;">Зажми мышку и рисуй! (Линии исчезнут через 5 сек)</span>
+    </div>
+    <canvas id="pixelCanvas"></canvas>
+    <script src="game.js"></script>
 </body>
 </html>
