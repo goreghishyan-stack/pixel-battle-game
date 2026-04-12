@@ -9,21 +9,13 @@ let pixelData = {};
 
 io.on('connection', (socket) => {
     socket.emit('loadCanvas', pixelData);
-
     socket.on('setPixel', (data) => {
-        const id = `${data.x}-${data.y}`;
-        pixelData[id] = { color: data.color };
-        io.emit('updatePixel', { x: data.x, y: data.y, color: data.color });
-
-        // Удаление через 5 секунд
-        setTimeout(() => {
-            if (pixelData[id]) {
-                delete pixelData[id];
-                io.emit('removePixel', { x: data.x, y: data.y });
-            }
-        }, 5000);
+        pixelData[`${data.x}-${data.y}`] = data.color;
+        io.emit('updatePixel', data);
     });
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => { console.log('Server is running'); });
+http.listen(PORT, () => {
+    console.log('Сервер запущен на порту ' + PORT);
+});
