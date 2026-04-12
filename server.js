@@ -6,24 +6,24 @@ const io = require('socket.io')(http);
 app.use(express.static(__dirname));
 
 let pixelData = {}; 
-let lastMove = {}; 
 
 io.on('connection', (socket) => {
     socket.emit('loadCanvas', pixelData);
 
     socket.on('setPixel', (data) => {
-        const now = Date.now();
-        const cooldown = 5000; // Сделал 5 секунд для тестов стратегии
+        const id = `${data.x}-${data.y}`;
+        
+        // Сохраняем пиксель
+        pixelData[id] = { color: data.color, user: data.user };
+        io.emit('updatePixel', { x: data.x, y: data.y, color: data.color });
 
-        if (lastMove[socket.id] && now - lastMove[socket.id] < cooldown) {
-            const timeLeft = Math.ceil((cooldown - (now - lastMove[socket.id])) / 1000);
-            socket.emit('error_cooldown', timeLeft);
-            return;
-        }
-
-        lastMove[socket.id] = now;
-        pixelData[`${data.x}-${data.y}`] = { color: data.color, user: data.user };
-        io.emit('updatePixel', { x: data.x, y: data.y, color: data.color, user: data.user });
+        // Магия CS2: через 5 секунд удаляем этот пиксель
+        setTimeout(() => {
+            if (pixelData[id]) {
+                delete pixelData[id];
+                io.emit('removePixel', { x: data.x, y: data.y });
+            }
+        }, 5000); // 5000 миллисекунд = 5 секунд
     });
 });
 
