@@ -2,32 +2,21 @@ const socket = io();
 const canvas = document.getElementById('pixelCanvas');
 const ctx = canvas.getContext('2d');
 const colorPicker = document.getElementById('colorPicker');
-const status = document.getElementById('status');
 const timerDisplay = document.getElementById('timer-display');
 const nickDisplay = document.getElementById('nickname-display');
 
-const worldSize = 100; 
-const pixelSize = 10; 
+const worldSize = 80; // Размер поля (80x80 пикселей)
+const pixelSize = 12; // Размер одного квадратика
 canvas.width = worldSize * pixelSize;
 canvas.height = worldSize * pixelSize;
 
 let pixels = {}; 
 let myNick = "";
 let canDraw = true;
+let currentTool = 'brush'; // Инструмент по умолчанию
+let showGrid = false; // Сетка выключена
 
-// Создаем всплывающую подсказку программно
-const tooltip = document.createElement('div');
-tooltip.style.position = 'absolute';
-tooltip.style.padding = '5px 10px';
-tooltip.style.background = 'rgba(0,0,0,0.8)';
-tooltip.style.color = 'white';
-tooltip.style.borderRadius = '5px';
-tooltip.style.display = 'none';
-tooltip.style.pointerEvents = 'none';
-tooltip.style.fontSize = '12px';
-tooltip.style.zIndex = '1000';
-document.body.appendChild(tooltip);
-
+// Функция входа
 window.startGame = function() {
     const nickInput = document.getElementById('nickname');
     if (nickInput.value.trim() !== "") {
@@ -37,59 +26,69 @@ window.startGame = function() {
     }
 };
 
-socket.on('loadCanvas', (data) => {
-    pixels = data;
-    render();
-});
+// Переключение инструментов
+window.setTool = function(tool) {
+    currentTool = tool;
+    document.getElementById('btn-brush').classList.toggle('active', tool === 'brush');
+    document.getElementById('btn-eraser').classList.toggle('active', tool === 'eraser');
+};
 
+// Вкл/Выкл сетки
+window.toggleGrid = function() {
+    showGrid = !showGrid;
+    render();
+};
+
+socket.on('loadCanvas', (data) => { pixels = data; render(); });
 socket.on('updatePixel', (data) => {
     pixels[`${data.x}-${data.y}`] = { color: data.color, user: data.user };
     render();
 });
 
-socket.on('error_cooldown', (seconds) => {
+socket.on('error_cooldown', (sec) => {
     canDraw = false;
-    startTimer(seconds);
+    startTimer(sec);
 });
 
 function render() {
+    // Очистка поля
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Рисуем пиксели
     for (let key in pixels) {
         const [x, y] = key.split('-').map(Number);
         ctx.fillStyle = pixels[key].color;
         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
     }
-}
 
-// ПРОВЕРКА КТО ПОСТАВИЛ (НАВЕДЕНИЕ)
-canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / pixelSize);
-    const y = Math.floor((e.clientY - rect.top) / pixelSize);
-    
-    const pixel = pixels[`${x}-${y}`];
-    if (pixel) {
-        tooltip.style.display = 'block';
-        tooltip.style.left = (e.clientX + 10) + 'px';
-        tooltip.style.top = (e.clientY + 10) + 'px';
-        tooltip.innerText = `Автор: ${pixel.user}`;
-    } else {
-        tooltip.style.display = 'none';
+    // Рисуем сетку (оверлей), если включена
+    if (showGrid) {
+        ctx.strokeStyle = "rgba(0,0,0,0.1)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= worldSize; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * pixelSize, 0);
+            ctx.lineTo(i * pixelSize, canvas.height);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, i * pixelSize);
+            ctx.lineTo(canvas.width, i * pixelSize);
+            ctx.stroke();
+        }
     }
-});
-
-canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
 
 canvas.addEventListener('mousedown', (e) => {
     if (!canDraw || !myNick) return;
     const rect = canvas.getBoundingClientRect();
     const x = Math.floor((e.clientX - rect.left) / pixelSize);
     const y = Math.floor((e.clientY - rect.top) / pixelSize);
-
-    socket.emit('setPixel', { x, y, color: colorPicker.value, user: myNick });
-    canDraw = false;
-    startTimer(30);
+    
+    // Если ластик — отправляем белый цвет (стираем)
+    const finalColor = (currentTool === 'eraser') ? '#ffffff' : colorPicker.value;
+    
+    socket.emit('setPixel', { x, y, color: finalColor, user: myNick });
 });
 
 function startTimer(seconds) {
@@ -99,10 +98,8 @@ function startTimer(seconds) {
         timeLeft--;
         if (timeLeft < 0) {
             clearInterval(interval);
-            timerDisplay.innerText = "ГОТОВ";
+            timerDisplay.innerText = "ГОТОВ К БОЮ";
             canDraw = true;
         }
     }, 1000);
 }
-
-render();
