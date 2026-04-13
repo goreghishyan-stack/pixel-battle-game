@@ -2,56 +2,74 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pixel Battle Final</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИТД — Соцсеть</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; background: #1a1a1a; color: white; font-family: sans-serif; overflow: hidden; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', Courier, monospace; }
         
-        #controls { 
-            height: 60px; background: #2c3e50; display: flex; align-items: center; 
-            padding: 0 20px; gap: 20px; border-bottom: 2px solid #34495e; position: relative; z-index: 10; 
+        /* Хедер в стиле итд */
+        header { 
+            padding: 20px; border-bottom: 2px solid #fff; 
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; background: #000; z-index: 10;
         }
         
-        canvas { display: block; cursor: crosshair; touch-action: none; }
+        #feed { max-width: 600px; margin: 0 auto; padding: 20px; }
+        
+        .post { 
+            border: 1px solid #333; padding: 15px; margin-bottom: 20px; 
+            background: #050505; transition: 0.3s;
+        }
+        .post:hover { border-color: #fff; }
+        .post-header { font-weight: bold; margin-bottom: 10px; color: #0f0; }
+        .post-content { line-height: 1.5; word-wrap: break-word; }
 
+        /* Поле ввода */
+        #input-area { 
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background: #000; border-top: 2px solid #fff; padding: 20px;
+        }
+        #post-input { 
+            width: 100%; background: #000; border: 1px solid #555; 
+            color: #fff; padding: 15px; font-size: 16px; outline: none;
+        }
+        #post-input:focus { border-color: #fff; }
+
+        /* Вход */
         #login-screen { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 100; 
+            background: #000; display: flex; align-items: center; justify-content: center; z-index: 100; 
         }
-        #login-box { background: #34495e; padding: 30px; border-radius: 12px; text-align: center; width: 90%; max-width: 400px; }
-        
-        input[type="text"] { padding: 12px; width: 100%; border-radius: 6px; border: none; margin-bottom: 15px; font-size: 16px; }
-        button { padding: 12px 30px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        
-        #pixel-info { 
-            position: fixed; background: rgba(0,0,0,0.85); color: white; padding: 6px 12px; 
-            border-radius: 4px; font-size: 13px; pointer-events: none; display: none; z-index: 1000; border: 1px solid #555;
-        }
-        #timer-display { font-weight: bold; color: #f1c40f; min-width: 100px; }
+        .box { border: 2px solid #fff; padding: 30px; text-align: center; }
+        input[type="text"] { padding: 10px; background: #000; color: #fff; border: 1px solid #fff; margin-bottom: 10px; }
+        button { padding: 10px 20px; background: #fff; color: #000; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="pixel-info"></div>
-
 <div id="login-screen">
-    <div id="login-box">
-        <h2 style="margin-top:0">PIXEL BATTLE</h2>
-        <input type="text" id="nickname" placeholder="Твой ник..." maxlength="15">
-        <button onclick="startGame()">В БОЙ</button>
+    <div class="box">
+        <h1>ИТД</h1>
+        <input type="text" id="nickname" placeholder="Твой ник или эмодзи...">
+        <br>
+        <button onclick="enterITD()">ЗАЙТИ</button>
     </div>
 </div>
 
-<div id="controls">
-    <input type="color" id="colorPicker" value="#e74c3c">
-    <div id="timer-display">ГОТОВ</div>
-    <div id="status" style="font-size: 12px; color: #bdc3c7;"></div>
+<header>
+    <div id="logo">ИТД.СЕТЬ</div>
+    <div id="user-name"></div>
+</header>
+
+<div id="feed">
+    </div>
+
+<div style="height: 120px;"></div> <div id="input-area">
+    <input type="text" id="post-input" placeholder="Что нового? (Enter чтобы запостить)">
 </div>
 
-<canvas id="pixelCanvas"></canvas>
-
-<script src="game.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
