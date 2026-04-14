@@ -1,26 +1,118 @@
-<div id="login-screen">
-    <div class="box">
-        <h1 id="start-logo">КГТД</h1>
-        <input type="text" id="nickname" placeholder="Твой ник..." maxlength="15">
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KGTD</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --bg: #050505; --card: #121212; --accent: #fff; --text: #eee; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         
-        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">ВЫБЕРИ СВОЙ КЛАН:</p>
-        <div id="clan-selector" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
-            <div class="clan-opt" onclick="selectClan('🏴‍☠️', this)">🏴‍☠️</div>
-            <div class="clan-opt" onclick="selectClan('🛡️', this)">🛡️</div>
-            <div class="clan-opt" onclick="selectClan('💊', this)">💊</div>
-            <div class="clan-opt" onclick="selectClan('🔥', this)">🔥</div>
-            <div class="clan-opt" onclick="selectClan('👁️', this)">👁️</div>
-        </div>
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, -apple-system, sans-serif; overflow-x: hidden; }
 
-        <button class="enter-btn" onclick="enterKGTD()">ВСТУПИТЬ</button>
+        /* ЭКРАНЫ */
+        .screen { 
+            position: fixed; inset: 0; background: var(--bg); 
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(-20px); }
+
+        .glass-box { 
+            width: 90%; max-width: 360px; padding: 40px 25px;
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; backdrop-filter: blur(10px); text-align: center;
+        }
+
+        h1 { font-size: 42px; font-weight: 900; letter-spacing: -2px; margin: 0 0 30px; }
+        
+        input { 
+            width: 100%; padding: 16px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; 
+            color: #fff; font-size: 16px; margin-bottom: 20px; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
+
+        .btn { 
+            width: 100%; padding: 16px; background: var(--accent); color: #000; 
+            border: none; border-radius: 14px; font-weight: 800; font-size: 16px; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.96); }
+
+        /* ВЫБОР КЛАНА (СЕТКА) */
+        .emoji-grid { 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; 
+            max-height: 200px; overflow-y: auto; margin-bottom: 20px; padding: 10px;
+            background: rgba(0,0,0,0.2); border-radius: 12px;
+        }
+        .emoji-item { 
+            font-size: 24px; padding: 10px; cursor: pointer; border-radius: 10px;
+            transition: 0.2s; border: 1px solid transparent;
+        }
+        .emoji-item:hover { background: rgba(255,255,255,0.1); }
+        .emoji-item.selected { background: rgba(255,255,255,0.2); border-color: var(--accent); }
+
+        /* ЛЕНТА */
+        header { 
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(5,5,5,0.8); backdrop-filter: blur(10px); 
+            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #1a1a1a;
+        }
+        #logo-small { font-weight: 900; font-size: 20px; }
+
+        #feed { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
+        .post { 
+            background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 15px;
+            border: 1px solid #1a1a1a; animation: slideIn 0.4s ease-out both;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .post-user { font-size: 13px; font-weight: 700; color: #888; margin-bottom: 6px; }
+        .post-text { font-size: 16px; line-height: 1.5; }
+
+        /* ПОЛЕ ВВОДА */
+        #input-area { 
+            position: fixed; bottom: 0; left: 0; width: 100%; padding: 20px;
+            background: linear-gradient(transparent, var(--bg) 50%); display: flex; justify-content: center;
+        }
+        #post-input { 
+            width: 100%; max-width: 500px; background: #1a1a1a; border: 1px solid #333;
+            color: #fff; padding: 15px 25px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div id="screen-reg" class="screen">
+    <div class="glass-box">
+        <h1>KGTD</h1>
+        <input type="text" id="input-nick" placeholder="Придумай ник" maxlength="15">
+        <button class="btn" onclick="goToClans()">ДАЛЕЕ</button>
     </div>
 </div>
 
-<style>
-    /* Добавь это в свои стили */
-    .clan-opt { 
-        font-size: 24px; cursor: pointer; padding: 10px; border: 2px solid transparent; 
-        border-radius: 12px; transition: 0.2s; background: #111;
-    }
-    .clan-opt.selected { border-color: #00ff88; background: #00ff8822; transform: scale(1.1); }
-</style>
+<div id="screen-clan" class="screen hidden">
+    <div class="glass-box">
+        <h2 style="margin-top:0">Выбери клан</h2>
+        <div class="emoji-grid" id="emoji-grid">
+            </div>
+        <button class="btn" onclick="finishReg()">ВСТУПИТЬ</button>
+    </div>
+</div>
+
+<header>
+    <div id="logo-small">KGTD</div>
+    <div id="display-user" style="opacity:0.5; font-size:14px"></div>
+</header>
+
+<div id="feed"></div>
+
+<div id="input-area">
+    <input type="text" id="post-input" placeholder="Напиши что-нибудь...">
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
