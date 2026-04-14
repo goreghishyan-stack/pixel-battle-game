@@ -3,74 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KGTD — Соцсеть</title>
+    <title>KGTD</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root { --bg: #000; --card: #111; --accent: #fff; --text: #fff; }
-        
-        /* ЗАЩИТА: Запрет выделения текста */
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            user-select: none; 
-            -webkit-user-select: none;
-        }
-        
-        body { 
-            margin: 0; background: var(--bg); color: var(--text); 
-            font-family: -apple-system, system-ui, sans-serif; 
-            overflow: hidden; /* Чтобы не дергалось при переходах */
-        }
-
-        /* Поля ввода должны быть выделяемыми */
+        :root { --bg: #000; --card: #111; --accent: #fff; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
         input { user-select: text; -webkit-user-select: text; outline: none; }
 
-        /* Экраны */
-        .screen { 
-            position: fixed; inset: 0; background: var(--bg); 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 1000; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+        .screen { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; transition: 0.4s; }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
 
         .auth-box { width: 85%; max-width: 320px; text-align: center; }
-        h1 { font-size: 50px; letter-spacing: -3px; margin-bottom: 30px; }
+        .input-style { width: 100%; padding: 16px; background: #151515; border: 1px solid #222; border-radius: 14px; color: #fff; margin-bottom: 12px; font-size: 16px; }
+        
+        .btn-main { width: 100%; padding: 16px; border-radius: 14px; border: none; font-weight: 900; cursor: pointer; transition: 0.2s; }
+        .btn-main:active { transform: scale(0.95); }
 
-        .input-style { 
-            width: 100%; padding: 16px; background: #151515; border: 1px solid #222; 
-            border-radius: 14px; color: #fff; margin-bottom: 12px; font-size: 16px;
-        }
+        .emoji-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
+        .emoji-item { font-size: 24px; padding: 10px; background: #151515; border-radius: 10px; cursor: pointer; border: 2px solid transparent; }
+        .emoji-item.selected { border-color: #fff; background: #222; }
 
-        .emoji-grid { 
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; 
-        }
-        .emoji-item { 
-            font-size: 24px; padding: 12px; background: #151515; border-radius: 12px; 
-            cursor: pointer; border: 2px solid transparent; 
-        }
-        .emoji-item.selected { border-color: var(--accent); background: #222; }
+        header { padding: 15px 20px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
+        #main-scroll { height: 100vh; overflow-y: auto; padding-bottom: 180px; }
+        
+        .post { background: var(--card); border-radius: 20px; padding: 18px; margin: 0 15px 15px; border: 1px solid #1a1a1a; }
+        .post-user { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; }
 
-        /* Контент */
-        header { 
-            padding: 15px 20px; border-bottom: 1px solid #1a1a1a; 
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100;
-        }
-
-        #main-scroll { height: 100vh; overflow-y: auto; padding-bottom: 150px; }
-        .page { padding: 20px; }
-
-        .post { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 15px; border: 1px solid #1a1a1a; }
-        .post-user { font-size: 13px; font-weight: 800; color: #666; margin-bottom: 5px; }
-
-        /* Навигация */
-        nav { 
-            position: fixed; bottom: 0; width: 100%; background: #000; 
-            display: flex; justify-content: space-around; padding: 20px; 
-            border-top: 1px solid #1a1a1a; z-index: 500;
-        }
-        nav div { font-size: 24px; cursor: pointer; opacity: 0.4; transition: 0.3s; }
-        nav div.active { opacity: 1; transform: translateY(-3px); }
+        nav { position: fixed; bottom: 0; width: 100%; background: #000; display: flex; justify-content: space-around; padding: 20px; border-top: 1px solid #1a1a1a; }
+        nav div { font-size: 24px; opacity: 0.4; cursor: pointer; }
+        nav div.active { opacity: 1; }
 
         #input-wrap { position: fixed; bottom: 85px; width: 100%; padding: 0 20px; display: flex; justify-content: center; }
     </style>
@@ -79,39 +41,45 @@
 
 <div id="screen-auth" class="screen">
     <div class="auth-box">
-        <h1>KGTD</h1>
-        <input type="text" id="nick-input" placeholder="Твой ник" class="input-style">
-        <input type="password" id="pass-input" placeholder="Код доступа" class="input-style">
-        <div class="emoji-grid" id="emoji-grid"></div>
-        <button onclick="handleAuth()" style="width:100%; padding:16px; border-radius:14px; border:none; background:#fff; font-weight:900; cursor:pointer;">ВХОД / РЕГИСТРАЦИЯ</button>
+        <h1 style="font-size:50px; letter-spacing:-3px">KGTD</h1>
+        
+        <div id="auth-choice">
+            <button class="btn-main" style="background:#fff; color:#000; margin-bottom:10px" onclick="setMode('reg')">СОЗДАТЬ АККАУНТ</button>
+            <button class="btn-main" style="background:transparent; color:#fff; border:1px solid #333" onclick="setMode('login')">ВОЙТИ</button>
+        </div>
+
+        <div id="auth-form" class="hidden">
+            <input type="text" id="nick-input" placeholder="Никнейм" class="input-style">
+            <input type="password" id="pass-input" placeholder="Пароль" class="input-style">
+            <div id="reg-extras">
+                <div class="emoji-grid" id="emoji-grid"></div>
+            </div>
+            <button id="submit-btn" class="btn-main" style="background:#fff; color:#000" onclick="sendAuth()">ПОДТВЕРДИТЬ</button>
+            <p onclick="location.reload()" style="margin-top:15px; font-size:12px; opacity:0.5; cursor:pointer">Назад</p>
+        </div>
     </div>
 </div>
 
 <header>
-    <b id="current-page-title">Лента</b>
-    <span id="my-id-display" style="font-size: 12px; font-weight: 800; opacity: 0.4;"></span>
+    <b id="page-title">Лента</b>
+    <span id="user-display" style="font-size:11px; opacity:0.5"></span>
 </header>
 
 <div id="main-scroll">
-    <div id="page-feed" class="page">
-        <div id="posts-container"></div>
-    </div>
-
-    <div id="page-search" class="page hidden">
-        <h2>Поиск</h2>
-        <input type="text" id="search-input" class="input-style" placeholder="Найти по нику...">
+    <div id="page-feed" class="page"><div id="posts-container" style="margin-top:20px"></div></div>
+    <div id="page-search" class="page hidden" style="padding:20px">
+        <input type="text" id="search-in" class="input-style" placeholder="Поиск по нику...">
         <div id="search-results"></div>
     </div>
 </div>
 
 <div id="input-wrap">
-    <input type="text" id="post-input" class="input-style" style="border-radius: 30px; background: #1a1a1a; border-color: #333;" placeholder="Написать в КГТД...">
+    <input type="text" id="post-input" class="input-style" style="border-radius:30px; background:#1a1a1a" placeholder="Твое сообщение...">
 </div>
 
 <nav>
-    <div class="active" onclick="changeTab('feed', this)">🏠</div>
-    <div onclick="changeTab('search', this)">🔍</div>
-    <div onclick="changeTab('clans', this)">🛡️</div>
+    <div class="active" onclick="tab('feed', this)">🏠</div>
+    <div onclick="tab('search', this)">🔍</div>
 </nav>
 
 <script src="script.js"></script>
