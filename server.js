@@ -19,7 +19,13 @@ io.on('connection', (socket) => {
                 return socket.emit('authResult', { success: false, message: "Это имя уже занято!" });
             }
             users[nick] = { pass: pass, clan: clan };
-            socket.emit('authResult', { success: true, userId: `${clan} ${nick}`, pass: pass });
+            const userId = `${clan} ${nick}`;
+            
+            // УВЕДОМЛЕНИЕ ДЛЯ КЛАНА
+            // Рассылаем всем, кроме отправителя, информацию о новом члене клана
+            socket.broadcast.emit('clanNotification', { clan: clan, user: nick });
+            
+            socket.emit('authResult', { success: true, userId: userId, pass: pass, userClan: clan });
         } else {
             if (!users[nick]) {
                 return socket.emit('authResult', { success: false, message: "Такого ника нет!" });
@@ -27,7 +33,7 @@ io.on('connection', (socket) => {
             if (users[nick].pass !== pass) {
                 return socket.emit('authResult', { success: false, message: "Неверный пароль!" });
             }
-            socket.emit('authResult', { success: true, userId: `${users[nick].clan} ${nick}`, pass: pass });
+            socket.emit('authResult', { success: true, userId: `${users[nick].clan} ${nick}`, pass: pass, userClan: users[nick].clan });
         }
     });
 
