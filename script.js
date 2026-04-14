@@ -1,126 +1,101 @@
 const socket = io();
+let mode = 'reg';
 let selectedEmoji = "";
-let myData = JSON.parse(localStorage.getItem('kgtd_session'));
+let myData = JSON.parse(localStorage.getItem('kgtd_v2'));
 
 const clans = ["🏴‍☠️", "💊", "🔥", "👁️", "🛡️", "⚡", "👾", "👑"];
-const allUsersInFeed = new Set();
+const allUsers = new Set();
 
-// Рендер кланов
+// Отрисовка эмодзи
 const grid = document.getElementById('emoji-grid');
 clans.forEach(e => {
     const d = document.createElement('div');
-    d.className = 'emoji-item';
-    d.innerText = e;
+    d.className = 'emoji-item'; d.innerText = e;
     d.onclick = () => {
         document.querySelectorAll('.emoji-item').forEach(i => i.classList.remove('selected'));
-        d.classList.add('selected');
-        selectedEmoji = e;
+        d.classList.add('selected'); selectedEmoji = e;
     };
     grid.appendChild(d);
 });
 
-// ПРОВЕРКА СЕССИИ (Авто-вход)
-window.onload = () => {
-    if (myData && myData.id) {
-        enterApp(false);
-    }
-};
+window.onload = () => { if (myData) enterApp(); };
 
-// ОБРАБОТКА СТРЕЛОК "НАЗАД"
-window.onpopstate = (e) => {
-    if (e.state && e.state.page) {
-        changeTab(e.state.page, null, false);
-    }
-};
+// Стрелки браузера
+window.onpopstate = (e) => { if (e.state) tab(e.state.page, null, false); };
 
-function handleAuth() {
+function setMode(m) {
+    mode = m;
+    document.getElementById('auth-choice').classList.add('hidden');
+    document.getElementById('auth-form').classList.remove('hidden');
+    if (m === 'login') document.getElementById('reg-extras').classList.add('hidden');
+}
+
+function sendAuth() {
     const nick = document.getElementById('nick-input').value.trim();
     const pass = document.getElementById('pass-input').value.trim();
-    
-    if (!nick || !pass || !selectedEmoji) return alert("Заполни все поля и выбери клан!");
-
-    // Сохраняем ник и пароль. В этой версии пароль хранится локально для "входа".
-    myData = { id: `${selectedEmoji} ${nick}`, pass: pass };
-    localStorage.setItem('kgtd_session', JSON.stringify(myData));
-    
-    enterApp(true);
+    if (!nick || !pass) return alert("Заполни поля!");
+    socket.emit('authenticate', { mode, nick, pass, clan: selectedEmoji });
 }
 
-function enterApp(pushHistory) {
+socket.on('authResult', (res) => {
+    if (res.success) {
+        myData = { id: res.userId, pass: res.pass };
+        localStorage.setItem('kgtd_v2', JSON.stringify(myData));
+        enterApp();
+    } else { alert(res.message); }
+});
+
+function enterApp() {
     document.getElementById('screen-auth').classList.add('hidden');
-    document.getElementById('my-id-display').innerText = myData.id;
-    if (pushHistory) history.pushState({page: 'feed'}, '', '');
+    document.getElementById('user-display').innerText = myData.id;
+    history.pushState({page: 'feed'}, '', '');
 }
 
-function changeTab(page, el, pushHistory = true) {
-    // Навигация по страницам
+function tab(page, el, push = true) {
     document.getElementById('page-feed').classList.add('hidden');
     document.getElementById('page-search').classList.add('hidden');
-    document.getElementById('input-wrap').classList.add('hidden');
-
-    const targetPage = document.getElementById(`page-${page}`);
-    if (targetPage) targetPage.classList.remove('hidden');
-    
-    if (page === 'feed') document.getElementById('input-wrap').classList.remove('hidden');
-    
-    document.getElementById('current-page-title').innerText = page === 'feed' ? 'Лента' : 'Поиск';
-
-    if (pushHistory) history.pushState({page: page}, '', '');
-
+    document.getElementById('input-wrap').style.display = (page === 'feed') ? 'flex' : 'none';
+    document.getElementById(`page-${page}`).classList.remove('hidden');
+    document.getElementById('page-title').innerText = page === 'feed' ? 'Лента' : 'Поиск';
+    if (push) history.pushState({page: page}, '', '');
     if (el) {
         document.querySelectorAll('nav div').forEach(d => d.classList.remove('active'));
         el.classList.add('active');
     }
 }
 
-// ПОСТЫ
-const postInput = document.getElementById('post-input');
-postInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && postInput.value.trim() && myData) {
-        socket.emit('newPost', { user: myData.id, content: postInput.value });
-        postInput.value = '';
+// Посты
+const pIn = document.getElementById('post-input');
+pIn.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && pIn.value.trim()) {
+        socket.emit('newPost', { user: myData.id, content: pIn.value });
+        pIn.value = '';
     }
-});
-
-socket.on('updateFeed', (post) => {
-    addPostToDOM(post);
-    allUsersInFeed.add(post.user);
 });
 
 socket.on('loadPosts', (posts) => {
     document.getElementById('posts-container').innerHTML = '';
-    posts.forEach(p => {
-        addPostToDOM(p);
-        allUsersInFeed.add(p.user);
-    });
+    posts.forEach(addP);
 });
 
-function addPostToDOM(post) {
-    const div = document.createElement('div');
-    div.className = 'post';
-    div.innerHTML = `<div class="post-user">${post.user}</div><div>${post.content}</div>`;
-    document.getElementById('posts-container').prepend(div);
+socket.on('updateFeed', addP);
+
+function addP(p) {
+    allUsers.add(p.user);
+    const d = document.createElement('div'); d.className = 'post';
+    d.innerHTML = `<div class="post-user">${p.user}</div><div>${p.content}</div>`;
+    document.getElementById('posts-container').prepend(d);
 }
 
-// ПОИСК
-document.getElementById('search-input').addEventListener('input', (e) => {
-    const val = e.target.value.toLowerCase();
-    const res = document.getElementById('search-results');
-    res.innerHTML = '';
-    
-    if (val.length < 2) return;
-
-    let found = Array.from(allUsersInFeed).filter(u => u.toLowerCase().includes(val));
-    
-    if (found.length > 0) {
-        found.forEach(user => {
-            res.innerHTML += `
-                <div style="background:#111; padding:15px; border-radius:12px; display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span>${user}</span>
-                    <button onclick="alert('Запрос отправлен!')" style="background:#fff; border:none; border-radius:5px; font-weight:bold; padding:5px 10px;">ДОБАВИТЬ</button>
-                </div>`;
-        });
-    } else {
-        res.innerHTML = '<p style="color:#333; text-align:center;">Таких тут нет. Либо шифруется, либо не существует.</p>';
-    }
+// Поиск
+document.getElementById('search-in').addEventListener('input', (e) => {
+    const v = e.target.value.toLowerCase();
+    const r = document.getElementById('search-results');
+    r.innerHTML = '';
+    if (v.length < 2) return;
+    Array.from(allUsers).filter(u => u.toLowerCase().includes(v)).forEach(u => {
+        r.innerHTML += `<div style="background:#111; padding:15px; border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between">
+            <span>${u}</span><button onclick="alert('Добавлено!')" style="background:#fff; border:none; border-radius:5px; font-weight:bold">АККАУНТ</button>
+        </div>`;
+    });
 });
