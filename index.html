@@ -1,88 +1,269 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>КГТД — Здесь кайфово</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        :root { --bg: #0d0d12; --card: #16161e; --accent: #7c4dff; --text: #e1e1e6; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; background-image: radial-gradient(circle at 50% -20%, #2a1a4a 0%, #0d0d12 80%); overflow: hidden; }
-        input { user-select: text; -webkit-user-select: text; outline: none; }
-        .screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; transition: 0.5s; }
-        .hidden { opacity: 0 !important; pointer-events: none !important; transform: translateY(30px); }
-        .auth-box { width: 85%; max-width: 340px; text-align: center; }
-        h1 { font-size: 54px; letter-spacing: -3px; margin: 0; background: linear-gradient(to bottom, #fff, #7c4dff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .slogan { color: #555; font-size: 14px; margin-bottom: 40px; font-weight: 600; }
-        .input-style { width: 100%; padding: 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; color: #fff; margin-bottom: 12px; font-size: 16px; }
-        .btn-main { width: 100%; padding: 18px; border-radius: 18px; border: none; background: var(--accent); color: #fff; font-weight: 900; font-size: 16px; cursor: pointer; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
-        .emoji-item { font-size: 26px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 15px; cursor: pointer; border: 2px solid transparent; }
-        .emoji-item.selected { border-color: var(--accent); background: rgba(124, 77, 255, 0.1); }
-        header { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(13, 13, 18, 0.7); backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        #main-scroll { height: 100vh; overflow-y: auto; padding-bottom: 200px; }
-        .post { background: var(--card); border-radius: 24px; padding: 20px; margin: 0 15px 15px; border: 1px solid rgba(255,255,255,0.03); }
-        .system-msg { background: rgba(124, 77, 255, 0.1); border: 1px dashed var(--accent); color: var(--accent); text-align: center; font-size: 12px; padding: 10px; border-radius: 15px; margin: 10px 15px; }
-        nav { position: fixed; bottom: 0; width: 100%; background: rgba(13, 13, 18, 0.9); display: flex; justify-content: space-around; padding: 25px; border-top: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(20px); }
-        nav div { font-size: 26px; opacity: 0.3; cursor: pointer; }
-        nav div.active { opacity: 1; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MinePvP</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0f; font-family: monospace; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* ── KIT SELECT ── */
+#kit-screen {
+  position: absolute; inset: 0;
+  background: #0a0a0f;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+#kit-screen h1 { color: #f0c040; font-size: 38px; letter-spacing: 6px; }
+#kit-screen .sub { color: #555; font-size: 13px; }
+.name-row { display: flex; gap: 10px; align-items: center; }
+.name-row input {
+  background: #111; border: 1px solid #333; border-radius: 4px;
+  color: #fff; font-family: monospace; font-size: 14px; padding: 8px 14px; outline: none; width: 200px;
+}
+.name-row input:focus { border-color: #f0c040; }
+.kits { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.kit-card {
+  background: #111; border: 2px solid #2a2a2a; border-radius: 8px;
+  padding: 18px 22px; cursor: pointer; min-width: 138px; text-align: center;
+  transition: border-color 0.15s, transform 0.12s;
+}
+.kit-card:hover { border-color: #f0c040; transform: translateY(-4px); }
+.kit-card .ic { font-size: 34px; margin-bottom: 10px; }
+.kit-card .nm { font-size: 15px; color: #fff; font-weight: bold; margin-bottom: 8px; }
+.kit-card .ds { font-size: 11px; color: #666; line-height: 1.9; text-align: left; }
+.kit-card .bars { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+.bar-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #555; }
+.bar-track { flex: 1; height: 4px; background: #222; border-radius: 2px; }
+.bar-fill-hp  { height: 100%; border-radius: 2px; background: #e74c3c; }
+.bar-fill-spd { height: 100%; border-radius: 2px; background: #3498db; }
+.bar-fill-dmg { height: 100%; border-radius: 2px; background: #f0c040; }
+
+/* ── HUD ── */
+#hud { position: absolute; inset: 0; display: none; pointer-events: none; }
+
+#crosshair {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 20px; height: 20px;
+}
+#crosshair::before, #crosshair::after {
+  content: ''; position: absolute; background: rgba(255,255,255,0.85);
+}
+#crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+#crosshair::after  { width: 100%; height: 2px; top:  50%; transform: translateY(-50%); }
+
+/* HP / MANA BARS */
+#bars {
+  position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.hud-bar { display: flex; align-items: center; gap: 8px; }
+.hud-bar-label { font-size: 11px; color: #aaa; width: 38px; text-align: right; }
+.hud-bar-bg { width: 170px; height: 8px; background: #222; border-radius: 4px; border: 1px solid #333; }
+.hud-bar-fill { height: 100%; border-radius: 4px; transition: width 0.1s; }
+#hp-fill  { background: #e74c3c; }
+#mana-fill { background: #3498db; }
+.hud-bar-val { font-size: 11px; color: #aaa; min-width: 36px; }
+
+/* HOTBAR */
+#hotbar {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 4px; pointer-events: all;
+}
+.slot {
+  width: 48px; height: 48px; background: rgba(0,0,0,0.6);
+  border: 2px solid #555; border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 8px; color: #888; gap: 1px; cursor: pointer; position: relative;
+}
+.slot.active { border-color: #f0c040; }
+.slot .sicon { font-size: 22px; }
+.slot .scnt { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #fff; }
+
+/* SCOREBOARD */
+#scoreboard {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.7); border: 1px solid #2a2a2a; border-radius: 6px;
+  padding: 8px 12px; font-size: 12px; color: #fff; min-width: 150px; pointer-events: none;
+}
+#scoreboard .stitle { color: #f0c040; font-size: 10px; margin-bottom: 6px; text-align: center; letter-spacing: 3px; }
+.sb-row { display: flex; justify-content: space-between; gap: 16px; padding: 1px 0; }
+.sb-row.me { color: #f0c040; }
+.sb-kills { color: #e74c3c; }
+
+/* CONTROLS HINT */
+#hints {
+  position: absolute; top: 8px; left: 8px;
+  background: rgba(0,0,0,0.55); border-radius: 4px; padding: 6px 10px;
+  font-size: 11px; color: #555; line-height: 2.0; pointer-events: none;
+}
+
+/* KILL FEED */
+#killfeed {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  pointer-events: none;
+}
+.kfmsg {
+  background: rgba(0,0,0,0.7); color: #fff; font-size: 12px;
+  padding: 3px 12px; border-radius: 3px;
+  transition: opacity 0.4s;
+}
+.kfmsg.me { color: #f0c040; }
+
+/* SPECIAL CD */
+#special-hint {
+  position: absolute; bottom: 64px; right: 8px;
+  font-size: 11px; color: #666; pointer-events: none; text-align: right;
+}
+
+/* DAMAGE FLASH */
+#dmg-flash {
+  position: absolute; inset: 0; pointer-events: none;
+  background: rgba(200,0,0,0); transition: background 0.06s;
+}
+
+/* PLAYER NAMETAG (3d projected - canvas overlay) */
+#namecanvas {
+  position: absolute; inset: 0; pointer-events: none;
+}
+
+/* DEATH SCREEN */
+#death-screen {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  pointer-events: all; color: #fff;
+}
+#death-screen h2 { color: #e74c3c; font-size: 28px; letter-spacing: 3px; }
+#death-screen .bykiller { color: #888; font-size: 14px; }
+.respawn-kits { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.respawn-kit {
+  background: #111; border: 2px solid #333; border-radius: 6px;
+  padding: 10px 18px; cursor: pointer; color: #fff; font-family: monospace; font-size: 13px;
+  transition: border-color 0.15s;
+}
+.respawn-kit:hover { border-color: #f0c040; color: #f0c040; }
+
+/* ONLINE COUNT */
+#online {
+  position: absolute; bottom: 8px; right: 8px;
+  font-size: 11px; color: #444; pointer-events: none;
+}
+</style>
 </head>
 <body>
 
-<div id="screen-auth" class="screen">
-    <div class="auth-box">
-        <h1>КГТД</h1>
-        <p class="slogan">Здесь кайфово</p>
-        <div id="auth-choice">
-            <button class="btn-main" style="margin-bottom:12px" onclick="setMode('reg')">СОЗДАТЬ АККАУНТ</button>
-            <button class="btn-main" style="background:transparent; color:#fff; border:1px solid #333;" onclick="setMode('login')">ВОЙТИ</button>
-        </div>
-        <div id="auth-form" class="hidden">
-            <input type="text" id="nick-input" placeholder="Никнейм" class="input-style">
-            <input type="password" id="pass-input" placeholder="Пароль" class="input-style">
-            <div id="reg-extras"><div class="emoji-grid" id="emoji-grid"></div></div>
-            <button id="submit-btn" class="btn-main" onclick="sendAuth()">ПОДТВЕРДИТЬ</button>
-            <p onclick="location.reload()" style="margin-top:20px; font-size:13px; color:#555; cursor:pointer">← Назад</p>
-        </div>
+<canvas id="canvas"></canvas>
+<canvas id="namecanvas"></canvas>
+
+<div id="kit-screen">
+  <h1>⚔ MINEPVP</h1>
+  <div class="sub">Онлайн PvP арена</div>
+
+  <div class="name-row">
+    <input id="name-input" type="text" placeholder="Твой ник" maxlength="16" />
+  </div>
+
+  <div class="kits">
+    <div class="kit-card" onclick="joinGame('warrior')">
+      <div class="ic">🗡️</div>
+      <div class="nm">Воин</div>
+      <div class="ds">HP: 20 | Урон: 5<br>Броня: Цепная<br>Спец: Удар щитом</div>
+      <div class="bars">
+        <div class="bar-row">HP <div class="bar-track"><div class="bar-fill-hp" style="width:60%"></div></div></div>
+        <div class="bar-row">SPD<div class="bar-track"><div class="bar-fill-spd" style="width:55%"></div></div></div>
+        <div class="bar-row">DMG<div class="bar-track"><div class="bar-fill-dmg" style="width:60%"></div></div></div>
+      </div>
     </div>
+
+    <div class="kit-card" onclick="joinGame('archer')">
+      <div class="ic">🏹</div>
+      <div class="nm">Лучник</div>
+      <div class="ds">HP: 16 | Урон: 3/6<br>Броня: Кожаная<br>Спец: Залп стрел</div>
+      <div class="bars">
+        <div class="bar-row">HP <div class="bar-track"><div class="bar-fill-hp" style="width:45%"></div></div></div>
+        <div class="bar-row">SPD<div class="bar-track"><div class="bar-fill-spd" style="width:80%"></div></div></div>
+        <div class="bar-row">DMG<div class="bar-track"><div class="bar-fill-dmg" style="width:55%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="kit-card" onclick="joinGame('tank')">
+      <div class="ic">🛡️</div>
+      <div class="nm">Танк</div>
+      <div class="ds">HP: 30 | Урон: 2<br>Броня: Железная<br>Спец: Рывок-удар</div>
+      <div class="bars">
+        <div class="bar-row">HP <div class="bar-track"><div class="bar-fill-hp" style="width:95%"></div></div></div>
+        <div class="bar-row">SPD<div class="bar-track"><div class="bar-fill-spd" style="width:30%"></div></div></div>
+        <div class="bar-row">DMG<div class="bar-track"><div class="bar-fill-dmg" style="width:25%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="kit-card" onclick="joinGame('assassin')">
+      <div class="ic">🗡️</div>
+      <div class="nm">Ассасин</div>
+      <div class="ds">HP: 12 | Урон: 8<br>Броня: Кожаная<br>Спец: Крит x2</div>
+      <div class="bars">
+        <div class="bar-row">HP <div class="bar-track"><div class="bar-fill-hp" style="width:28%"></div></div></div>
+        <div class="bar-row">SPD<div class="bar-track"><div class="bar-fill-spd" style="width:95%"></div></div></div>
+        <div class="bar-row">DMG<div class="bar-track"><div class="bar-fill-dmg" style="width:95%"></div></div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div id="logout-modal" class="screen hidden">
-    <div class="auth-box">
-        <h2 style="margin-bottom:30px">Выход из КГТД</h2>
-        <button class="btn-main" style="background:#ff4d4d; margin-bottom:12px" onclick="confirmLogout()">ВЫЙТИ СОВСЕМ</button>
-        <button class="btn-main" style="background:transparent; border:1px solid #333" onclick="closeLogout()">ВЕРНУТЬСЯ (НАЗАД)</button>
+<div id="hud">
+  <div id="crosshair"></div>
+
+  <div id="bars">
+    <div class="hud-bar">
+      <div class="hud-bar-label">HP</div>
+      <div class="hud-bar-bg"><div class="hud-bar-fill" id="hp-fill" style="width:100%"></div></div>
+      <div class="hud-bar-val" id="hp-text">20/20</div>
     </div>
+    <div class="hud-bar">
+      <div class="hud-bar-label">Мана</div>
+      <div class="hud-bar-bg"><div class="hud-bar-fill" id="mana-fill" style="width:100%"></div></div>
+      <div class="hud-bar-val" id="mana-text">100</div>
+    </div>
+  </div>
+
+  <div id="hotbar"></div>
+
+  <div id="scoreboard">
+    <div class="stitle">СЧЁТ</div>
+    <div id="sb-list"></div>
+  </div>
+
+  <div id="hints">
+    WASD — движение<br>
+    ЛКМ — удар мечом<br>
+    ПКМ — лук (Лучник)<br>
+    Q — спец. удар<br>
+    Esc — выйти из игры
+  </div>
+
+  <div id="killfeed"></div>
+  <div id="special-hint"></div>
+  <div id="dmg-flash"></div>
+  <div id="online"></div>
 </div>
 
-<header>
-    <div>
-        <b id="page-title">Лента</b>
-        <div id="user-display" style="font-size:10px; color:#555; font-weight:bold;"></div>
-    </div>
-    <div onclick="openLogout()" style="font-size:22px; cursor:pointer; opacity:0.5">🚪</div>
-</header>
-
-<div id="main-scroll">
-    <div id="page-feed" class="page"><div id="posts-container" style="margin-top:20px"></div></div>
-    <div id="page-search" class="page hidden" style="padding:20px">
-        <h2>Поиск</h2>
-        <input type="text" id="search-in" class="input-style" placeholder="Найти друга...">
-        <div id="search-results"></div>
-    </div>
+<div id="death-screen">
+  <h2>☠ ТЫ УМЕР</h2>
+  <div class="bykiller" id="death-killer"></div>
+  <div style="color:#666;font-size:12px">Выбери кит:</div>
+  <div class="respawn-kits">
+    <div class="respawn-kit" onclick="respawn('warrior')">⚔ Воин</div>
+    <div class="respawn-kit" onclick="respawn('archer')">🏹 Лучник</div>
+    <div class="respawn-kit" onclick="respawn('tank')">🛡️ Танк</div>
+    <div class="respawn-kit" onclick="respawn('assassin')">🗡️ Ассасин</div>
+  </div>
 </div>
 
-<div id="input-wrap" style="position:fixed; bottom:95px; width:100%; padding:0 20px; display:flex;">
-    <input type="text" id="post-input" class="input-style" style="border-radius:40px; background: rgba(255,255,255,0.05);" placeholder="Что на уме?">
-</div>
-
-<nav>
-    <div class="active" onclick="tab('feed', this)">🏠</div>
-    <div onclick="tab('search', this)">🔍</div>
-</nav>
-
-<script src="script.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
